@@ -74,9 +74,10 @@ experienceRouter.delete("/:id", async (req, res, next) => {
   }
 });
 
+/* to download */
 experienceRouter.get("/:id/download", async (req, res, next) => {
   try {
-    res.setHeader("Content-Disposition", "attachment; filename=books.csv");
+    res.setHeader("Content-Disposition", "attachment; filename=experience.csv");
     let experiences = await experienceSchema.findById(req.params.id);
     console.log(experiences);
     const stream = Readable.from(JSON.stringify(experiences));

@@ -21,6 +21,8 @@ server.use("/experience", experienceRouter);
 server.use("/post", postRouter);
 server.use("/profile", profileRouter);
 
+/* test home ro */
+
 // error handlers ----------------------------------------------------------------
 server.use(badRequestError);
 server.use(unauthorizedError);
