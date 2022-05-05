@@ -16,7 +16,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET,
 });
 
-const cloudinaryUpload = multer({
+export const cloudinaryUpload = multer({
   storage: new CloudinaryStorage({
     cloudinary,
     params: { folder: "Linkedin-Profiles_images" },

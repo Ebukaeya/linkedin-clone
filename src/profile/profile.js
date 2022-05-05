@@ -2,7 +2,11 @@ import express from "express";
 import profile from "./profileModal.js";
 import createError from "http-errors";
 import generateUserPdfReadableStream from "../libs/pdfTools.js";
-import {pipeline} from "stream"
+import {pipeline, Readable} from "stream"
+import { cloudinaryUpload } from "../post/post.js";
+import experienceSchema from "../experience/experienceModal.js";
+import json2csv from "json2csv"
+
 
 const profileRouter = express.Router();
 
@@ -102,5 +106,141 @@ profileRouter.get("/:userId/cv", async (req, res, next) => {
       console.log(error);
     }
   });
+
+
+
+  // ***********************Experience Route  *********************//
+
+  profileRouter.get("/:userName/experiences/csv", async (req, res, next) => {
+    try {
+      res.setHeader("Content-Disposition", "attachment; filename=books.csv");
+  
+      const user = await profile.findOne({ username: req.params.userName });
+      const { _id } = user;
+      console.log(_id); 
+      const experience = await experienceSchema.find({ profile: _id }); 
+  
+      const stream = Readable.from(JSON.stringify(experience));
+      console.log(stream); 
+       const transform = new json2csv.Transform({
+        fields: ["role", "company"],
+      });
+      const destination = res;
+  
+      pipeline(stream, transform, destination, (err) => {
+        if (err) console.log(err);
+      }); 
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  profileRouter.get("/:userName/experiences", async (req, res, next) => {
+    try {
+      const user = await profile.findOne({ username: req.params.userName });
+      const { _id } = user;
+      const experience = await experienceSchema
+        .find({ profile: _id })
+        .populate("profile");
+  
+      res.status(200).send(experience);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  profileRouter.get(
+    "/:userName/experiences/:experienceId",
+    async (req, res, next) => {
+      try {
+        const experience = await experienceSchema
+          .findById(req.params.experienceId)
+          .populate("profile");
+        res.status(200).send(experience);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
+  profileRouter.post(
+    "/:userName/experiences",
+  
+    async (req, res, next) => {
+      try {
+        const user = await profile.findOne({ username: req.params.userName });
+        const { _id } = user;
+        let experience;
+        if (!req.body.image) {
+          experience = {
+            ...req.body,
+            image:
+              "https://post.medicalnewstoday.com/wp-content/uploads/sites/3/2020/02/322868_1100-800x825.jpg",
+          };
+        } else {
+          experience = req.body;
+        }
+        const newExperience = await new experienceSchema({
+          ...experience,
+          profile: _id,
+        });
+        console.log(newExperience);
+        const createdExp = await newExperience.save();
+  
+        res.status(201).send(createdExp);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
+  profileRouter.put(
+    "/:userName/experiences/:experienceId",
+    async (req, res, next) => {
+      try {
+        const experienceUpdate = await experienceSchema.findByIdAndUpdate(
+          req.params.experienceId,
+          req.body,
+          { new: true }
+        );
+        res.status(202).send(experienceUpdate);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  
+  profileRouter.delete(
+    "/:userName/experiences/:experienceId",
+    async (req, res, next) => {
+      try {
+        await experienceSchema.findByIdAndDelete(req.params.experienceId);
+        res.status(204).send(`product ${req.params.id} deleted`);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
+  profileRouter.post(
+    "/:userName/experiences/:experienceId/picture",
+    cloudinaryUpload,
+  
+    async (req, res, next) => {
+      try {
+        const experience = await experienceSchema.findById(
+          req.params.experienceId
+        );
+        experience.image = req.file.path;
+  
+        experience.save();
+  
+        res.status(201).send(experience);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
 
 export default profileRouter;
