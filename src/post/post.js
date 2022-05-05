@@ -4,9 +4,9 @@ import postModel from "./postModel.js";
 /* import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary"; */
 import pkg from "cloudinary";
-const { v2:cloudinary} = pkg
+const { v2: cloudinary } = pkg;
 import pkg2 from "multer-storage-cloudinary";
-const { CloudinaryStorage } = pkg2
+const { CloudinaryStorage } = pkg2;
 import multer from "multer";
 // =============================
 const postRouter = express.Router();
@@ -24,20 +24,34 @@ const cloudinaryUpload = multer({
 }).single("image");
 
 // ==============================
-postRouter.post("/", cloudinaryUpload, async (req, res, next) => {
+postRouter.post("/:postId", cloudinaryUpload, async (req, res, next) => {
   try {
-    const post = await postModel(req.body);
-    const { _id } = await post.save();
-    res.send({ _id });
+    if (req.file) {
+      const post = await postModel.findById(req.params.postId);
+      let editedPost = { ...post.toObject(), image: req.file.path };
+      res.send(editedPost);
+    } else {
+      next(createError(400, "must include an image"));
+    }
   } catch (error) {
     console.log(error);
     next(createError(404, `post Not found!`));
   }
 });
+postRouter.post("/", async (req, res, next) => {
+  try {
+    const post = await postModel(req.body);
+    const { _id } = await post.save();
+    res.send(_id);
+  } catch (error) {
+    console.log(error);
+    next(createError(404));
+  }
+});
 // =======================================
 postRouter.get("/", async (req, res, next) => {
   try {
-    const getPost = await postModel.find().populate("profile")
+    const getPost = await postModel.find().populate("profile");
     res.send(getPost);
   } catch (error) {
     console.log(error);
@@ -47,9 +61,9 @@ postRouter.get("/", async (req, res, next) => {
 // =======================================
 postRouter.get("/:postId", async (req, res, next) => {
   try {
-    const getPost = await postModel.findById(req.params.postId).populate(
-      "profile"
-    );
+    const getPost = await postModel
+      .findById(req.params.postId)
+      .populate("profile");
     res.send(getPost);
   } catch (error) {
     console.log(error);
@@ -84,14 +98,7 @@ postRouter.delete("/:postId", async (req, res, next) => {
   }
 });
 // =======================================
-postRouter.post("/:postId", async (req, res, next) => {
-  try {
-    res.send();
-  } catch (error) {
-    console.log(error);
-    next(createError(404));
-  }
-});
+
 // =======================================
 
 // =====================================
